@@ -1,0 +1,36 @@
+= ROBOKOP Neo4j Functions
+:neo4j_version: 3.2.6
+
+This project is an example you can use to build user defined procedures, functions and aggregation functions in Neo4j.
+It contains two procedures, for reading and updating a full-text index.
+
+To try this out, simply clone this repository and have a look at the source and test code (including Test-Server-Setup).
+
+[Note]
+This plugin is built for Neo4j {neo4j_version}, though it does not depend on any deprecated features.
+
+
+=== Traversable
+
+This user-defined function allows you to identify whether a subgraph is traversable from a set of labeled nodes, respecting the directions of edges.
+
+[source,cypher]
+----
+MATCH p=(n {name:'disease'})-[*0..6]-(m {name:'gene'})
+WHERE robokop.traversable(nodes(p), relationships(p), [n, m])
+RETURN p
+----
+
+== Building
+
+This project uses maven, to build a jar-file with the function in this
+project, simply package the project with maven:
+
+    mvn clean package
+
+This will produce a jar-file, `target/robokop-1.0.0.jar`,
+that can be deployed in the `plugin` directory of your Neo4j instance.
+
+== License
+
+Apache License V2, see LICENSE
