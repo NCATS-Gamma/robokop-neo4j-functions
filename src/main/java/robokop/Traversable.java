@@ -17,45 +17,56 @@ import org.neo4j.graphdb.Relationship;
  */
 public class Traversable
 {
+    private void recurse(
+            List<Node> nodes,
+            Map<Long, List<Relationship>> edges,
+            Map<Long, Boolean> reachable,
+            Long node_id) {
+
+        // If node has already been visited, quit recursing.
+        if (reachable.get(node_id)) {
+            return;
+        }
+
+        // Mark node as reachable.
+        reachable.put(node_id, true);
+
+        // Get edges starting at node.
+        List<Relationship> edges_from_node = edges.get(node_id);
+
+        // Mark downstream neighbors as reachable.
+        for (Relationship e : edges_from_node) {
+            recurse(nodes, edges, reachable, e.getEndNode().getId());
+        }
+
+        return;
+    }
+            
     @UserFunction
     @Description("example.traversable([n0,n1,...], [r0,r1,...], [m0,m1,...]) - is the graph (n,r) traversable given labeled nodes m.")
     public Boolean traversable(
             @Name("nodes") List<Node> nodes,
             @Name("edges") List<Relationship> edges,
             @Name("labeled") List<Node> labeled) {
-        
-        // Copy input arrays. Neo4j gets angry if we try to modify these.
-        List<Node>reachable = new ArrayList<Node>(labeled);
-        List<Node>unreachable = new ArrayList<Node>(nodes);
-        unreachable.removeAll(reachable);
 
-        // Initialize node->edges map.
-        Map<Long, List<Relationship>> map = new HashMap();
+        // Initialize node->edges map and node->reachable map.
+        Map<Long, List<Relationship>> edges_by_nodes = new HashMap();
+        Map<Long, Boolean> reachable = new HashMap();
         for (Node n : nodes) {
-            map.put((Long)n.getId(), new ArrayList());
+            edges_by_nodes.put((Long)n.getId(), new ArrayList());
+            reachable.put((Long)n.getId(), false);
         }
 
         // Populate node->edges map, sorting edges by start node.
         for (Relationship e : edges) {
-            map.get(e.getStartNodeId()).add(e);
+            edges_by_nodes.get(e.getStartNodeId()).add(e);
         }
 
-        // Loop through reachable nodes, including the ones we don't know about yet.
-        int i = 0;
-        while (i<reachable.size()) {
-            // Get edges starting at node.
-            List<Relationship> edges_from = map.get(reachable.get(i).getId());
-
-            // Move edge targets from unreachable[] to reachable[].
-            for (Relationship r : edges_from) {
-                if (unreachable.contains(r.getEndNode())) {
-                    reachable.add(r.getEndNode());
-                    unreachable.remove(r.getEndNode());
-                }
-            }
-            i++;
+        // Run recursion to populate reachable
+        for (Node n : labeled) {
+            recurse(nodes, edges_by_nodes, reachable, n.getId());
         }
 
-        return unreachable.size()==0;
+        return reachable.values().stream().reduce(true, (a,b)->a&&b);
     }
 }
