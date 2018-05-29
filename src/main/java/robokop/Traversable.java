@@ -18,7 +18,6 @@ import org.neo4j.graphdb.Relationship;
 public class Traversable
 {
     private void recurse(
-            List<Node> nodes,
             Map<Long, List<Relationship>> edges,
             Map<Long, Boolean> reachable,
             Long node_id) {
@@ -36,14 +35,14 @@ public class Traversable
 
         // Mark downstream neighbors as reachable.
         for (Relationship e : edges_from_node) {
-            recurse(nodes, edges, reachable, e.getEndNode().getId());
+            recurse(edges, reachable, e.getEndNode().getId());
         }
 
         return;
     }
             
     @UserFunction
-    @Description("example.traversable([n0,n1,...], [r0,r1,...], [m0,m1,...]) - is the graph (n,r) traversable given labeled nodes m.")
+    @Description("robokop.traversable([n0,n1,...], [r0,r1,...], [m0,m1,...]) - is the graph (n,r) traversable given labeled nodes m.")
     public Boolean traversable(
             @Name("nodes") List<Node> nodes,
             @Name("edges") List<Relationship> edges,
@@ -64,7 +63,7 @@ public class Traversable
 
         // Run recursion to populate reachable
         for (Node n : labeled) {
-            recurse(nodes, edges_by_nodes, reachable, n.getId());
+            recurse(edges_by_nodes, reachable, n.getId());
         }
 
         return reachable.values().stream().reduce(true, (a,b)->a&&b);
